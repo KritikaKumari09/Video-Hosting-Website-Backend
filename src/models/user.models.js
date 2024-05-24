@@ -62,8 +62,13 @@ import bcrypt from "bcrypt"
     next()
  })
 
+
+ // since comparing passwords take time therefore async used
+
  userSchema.methods.isPasswordCorrect=async function(password){
-    return await bcrypt.compare(password, this.password)
+    // since compare function takes time we used await this makes asynchr like synch. it waits the execution until promise 
+    // project is returned
+    return await bcrypt.compare(password, this.password)// compares the user entered password from the password stored in database
  }
 
  userSchema.methods.generateAccessToken=function(){
