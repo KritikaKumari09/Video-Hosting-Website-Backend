@@ -3,7 +3,7 @@ class ApiError extends Error{
         statusCode,
         message="Something went wrong",
         error=[],
-        statck=""// i dont know why but sir used statck instead of stack
+        stack=""
     ){// here we overwrite 
         // here we can add properties or overwrite them 
         super(message)//overwrite message
@@ -13,8 +13,8 @@ class ApiError extends Error{
         this.success=false
         this.errors=this.errors
 
-        if(statck){
-            this.stack=statck
+        if(stack){
+            this.stack=stack
         }
         else{
             Error.captureStackTrace(this,this.constructor)
