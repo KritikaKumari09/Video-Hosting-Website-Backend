@@ -1,5 +1,6 @@
+// it is a higher order order function that accepts function as argument and returns functtion
 const asyncHandler=(requestHandler)=>{
-    (req,res,next)=>{
+    return (req,res,next)=>{ // return statement important or elese it won't return func and therefor error while running
         Promise.resolve(requestHandler(req,res,next))
         .catch((err)=> next(err))
     }
