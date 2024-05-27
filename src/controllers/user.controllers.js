@@ -100,9 +100,11 @@ const createdUser=await User.findById(user._id).select("-password -refreshToken"
     throw new ApiError(500, "Something went wrong while registering the user")
  }
 
-// below code for 9
-return res.staus(201).json(
-    new ApiResponse(200, createdUser, "User registered successfully")
+// below code for 9 we dont wantany random response to go but rather proper Api response to go therefore we use ApiResponse.js file in utils folder by importing {ApiResponse } 
+// here we send json response
+return res.status(201).json(
+   new ApiResponse(200, createdUser, "User registered successfully") // we created new api resonspse object
+//    status code =200  , data =createdUser and message ="User...successfully"
 )
 
 })
