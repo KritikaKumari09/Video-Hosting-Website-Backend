@@ -58,7 +58,7 @@ import bcrypt from "bcrypt"
     //if  not used this then any detail like avatar,  email etc will change it will reencrypt password because below codes will run
     // but we want this only when password is first enterd
     // or when password is changed
-    this.password=bcrypt.hash(this.password,10)
+    this.password=await bcrypt.hash(this.password,10) // await used since this process will take some time
     next()
  })
 
@@ -107,3 +107,4 @@ import bcrypt from "bcrypt"
   
  
  export const User=mongoose.model("User", userSchema)
+ // this user can directly contact with database because it hass been created using mongoose.model()
