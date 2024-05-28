@@ -54,7 +54,7 @@ if([fullName,email,username,password].some((field)=> field?.trim()==="")){
 
 // below code for 3)
 // User imported from user.models has direct access to database bracuse it wss created using mongoose.model(). It provides many func for use one of them being findOne 
-const existedUser=User.findOne({
+const existedUser=await User.findOne({ // since connecting with database takes time therefore await used
     $or: [{username}, {email}] // this line means check either username or email whether it existed before or not 
 })
 if(existedUser){
@@ -64,7 +64,16 @@ if(existedUser){
 // below code for 4)
 //express gives access to req.body and multer gives access to req.files
  const avatarLocalPath=req.files?.avatar[0]?.path;
- const coverImageLocalPath=req.files?.coverImage[0]?.path;
+//  const coverImageLocalPath=req.files?.coverImage[0]?.path;
+let coverImageLocalPath;
+if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+    //the above line of code means if req.files which is an object is there and req.files.coverImage is array and its length>0.
+    // The Array.isArray() static method determines whether the passed value is an Array.
+    coverImageLocalPath = req.files.coverImage[0].path;
+} 
+console.log(req.files)
+// just to check what req.files returns
+// req.files returns an object with avatar and coverImage being as key and their value an array comprising of some data
 if(!avatarLocalPath){
     throw new ApiError(400 , "Avatar file is required")
 }   
@@ -82,8 +91,8 @@ if (!avatar) {
 
 // below code for 6
 //since database in different continent it takes time to send data to it and we may also get error.for error we have asyncHandler which will catch the error. but for time it will take we use await 
-const user =User.create({
-    fullName,
+const user =await User.create({ // since connecting with database takes time therefore await used
+    fullName, 
     avatar:avatar.url,
     coverImage: coverImage?.url || "",//in above code no problem since we will have avatar.url or else we have thrown an error up since avatar is compulsory
     // but coverImage is not compulsory therefore its possible that its url not there therfore above code using optional chaining . if url there then ok or else assign ""(emptu string)
