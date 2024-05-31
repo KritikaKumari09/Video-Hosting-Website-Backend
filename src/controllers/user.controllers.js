@@ -238,7 +238,7 @@ const refreshAccessToken= asyncHandler(async(req,res)=>{
     // below is the encoded refreshToken which is saved in incomingRefreshToken 
     const incomingRefreshToken= req.cookies.refreshToken || req.body.refreshToken
     // above code to access refreshToken  using cookies and if cookies not available(e.g. in mobile application ) then through req.body 
-    if(incomingRefreshToken){
+    if(!incomingRefreshToken){
         throw new ApiError(401, "Unauthorized request")
     }
     // it will be better if for below part you have try-catch statement
