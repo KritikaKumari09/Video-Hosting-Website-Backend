@@ -2,6 +2,7 @@ import { Router } from "express";
 import { registerUser, loginUser, logoutUser } from "../controllers/user.controllers.js";
 import {upload} from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { refreshAccessToken } from "../controllers/user.controllers.js";
 const router =Router()
 
 //this upload which has come from multer gives us many options one of them being fields()  
@@ -14,5 +15,8 @@ router.route("/register").post(upload.fields([
     registerUser)// middlware comes just before the method:registerUser in this case is that method
 
     router.route("/login").post(loginUser) // post because we are taking the information
+    // secured routes
     router.route("/logout").post(verifyJWT, logoutUser)
+    router.route("/refresh-token").post(refreshAccessToken)
+
 export default router;
