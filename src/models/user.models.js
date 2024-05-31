@@ -69,6 +69,7 @@ import bcrypt from "bcrypt"
     // since compare function takes time we used await this makes asynchr like synch. it waits the execution until promise 
     // project is returned
     return await bcrypt.compare(password, this.password)// compares the user entered password from the password stored in database
+    // password = user entered password , this.password=password stored in database
  }
 
  userSchema.methods.generateAccessToken=function(){
@@ -78,7 +79,7 @@ import bcrypt from "bcrypt"
             // lhs payload name . rhs value from database
             _id: this._id,
             email:this.email,
-            userName:this.userName,
+            username:this.username,
             fullName:this.fullName
         },
         process.env.ACCESS_TOKEN_SECRET,

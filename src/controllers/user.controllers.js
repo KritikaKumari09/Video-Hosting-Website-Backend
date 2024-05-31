@@ -4,6 +4,26 @@ import {User} from "../models/user.models.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+// creating this method which will be used to create refresh and access token while registering the user 
+const generateAccessAndRefreshTokens= async(userId)=>{
+    try{
+        const user=await User.findById(userId)
+        const accessToken=user.generateAccessToken()
+        const refreshToken=user.generateRefreshToken()
+        user.refreshToken=refreshToken// we save refreshToken that we generated in above step in database i.e. through user.refreshToken. here user = object
+        await user.save({validateBeforeSave:false})///this line saves the refreshToekn in database
+        // await because here saving info in db may take time
+        //validateBeforeSave:false --> we used it because we are just saving one field here i.e. refreshToken and not other field but here password should also be there therefore we done validation at this point :false
+
+        return {accessToken,refreshToken}
+    }
+    catch(error){
+        throw new ApiError(500, "Something went wrong while generating refresh and access token")
+    }
+}
+
+
+// registring the user
 const registerUser= asyncHandler(async (req , res) => {
   // below is the algorithm for registering user 
 
@@ -117,4 +137,100 @@ return res.status(201).json(
 )
 
 })
-export {registerUser}
+
+// logging in user
+const loginUser= asyncHandler(async(req,res)=>{
+    // below is the algorithm for registering user :
+    // 1) get data from req.body
+    // 2) login the user either thorugh email or username
+    // 3) find the user
+    // 4)password check
+    // 5) if password right then generate access and refresh token 
+    // 6) then send these tokens through secure cookie
+
+    // code for 1
+    const {email,username,password}=req.body;// destructuring email , username and password key from req.body object
+    if(!(username || email)){
+        throw new ApiError(400, "username or email required")
+    }
+
+    // code for 2 and 3
+    // finding user just through email
+    // User.findOne({email})
+    // finding user through both email or username depending on whatever is available
+    const user= await User.findOne({ // since connecting with database takes time therefore await
+        $or:[{username}, {email}] // $or is mongo db operator through we can check user either through email or username 
+    })
+    if(!user){
+        throw new ApiError(404, "User does not exist")
+    }
+
+    // code for 4
+   const isPasswordValid =await user.isPasswordCorrect(password)
+//    with isPasswordCorrect is used with user and not User because User is mongosse object therfore it has access to all func that are provided by mongoose like findOne() etc 
+// on the otherhand the methods which we created like generateAccessToken,isPasswordCorrect etc are valid with our present user who is trying to log in whosw access we have via 'user' object which is receiving instance from db
+//    password = user entered password whihc we got using destructuring from req.body object
+   if(!isPasswordValid){
+    throw new ApiError(401 ,"Invalid user credentials" )
+   }
+
+//    code for 5
+const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id)// since it may take time since we are saving info in db in this method 
+// we took the values using destructuring
+
+//    code for 6
+const loggedInUser= await User.findById(user._id).select("-password -refreshToken") // we created this new loggedInUser object because the user object we initially created had empty access and refresh token because we called generateAccessAndRefreshTokesn inabove line and user object was assigned both tokens in above line and not before.
+// therefore the above createdo object has both tokens. by default every data field of object is selected therefore we -password and -refreshToken sinve we dont want thtis 
+ 
+// while sending cookies we need to design some options which are basically an object
+const options={
+    httpOnly:true,
+    secure:true
+ } // this code means that cookie cannot be edited via front end but only thorugh server side
+
+//  we are now returing a response
+// since we have cookie parser middleware we can set as many cookies as we want using cookie()
+ return res
+ .status(200)
+ .cookie("accessToken", accessToken,options)
+ .cookie("refreshToken",refreshToken,options)
+ .json(
+    new ApiResponse(
+        200, 
+        {user:loggedInUser,accessToken,refreshToken},
+        "User logged In Successfully"
+    )
+ )
+})
+
+//logging out user
+const logoutUser= asyncHandler(async(req,res)=>{
+    // we need to do mainly 2 things :
+    // 1) clear the cookie 
+    // 2)reset the refresh token
+    // we will use authentication middleware
+   
+//    code for 2)
+    await User.findByIdAndUpdate(req.user._id, { // finds user by parameter provided and updates 2nd parameter
+        $set:{refreshToken: undefined} // $set is mongodb operator which updates key with value provided
+    },
+    {new : true} // beacuse of this in return the response which you will get will have new updated valeu of refreshToken i.e. undefined and if  not used it then we will get old value means it will get old value of refreshtoekn
+)
+
+
+// code for 1)
+// copied options for cookie from login user. // why options used see in above loginUser code
+const options={
+    httpOnly:true,
+    secure:true
+ } 
+//  because of cookie parser middleware installed we can directly use clearCookie()  
+return res.status(200)
+.clearCookie("accessToken", options)
+.clearCookie("refreshToken",options)
+.json(new ApiResponse(200, {}, "User logged out"))
+
+})
+
+
+export {registerUser , loginUser, logoutUser}
