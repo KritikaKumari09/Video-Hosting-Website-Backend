@@ -29,8 +29,9 @@ router.route("/avatar").patch(verifyJWT, upload.single("avatar") , updateUserAva
 router.route("/cover-image").patch(verifyJWT,upload.single("coverImage"), updateUserCoverImage)
 router.route("/c/:username").get(verifyJWT,getUserChannelProfile)
 // since in above we got info from and req.params and not req.body therefore used colon(:) and username its important to use colon
+// here we will replace :username with username value while sending request thorugh postman  
 // we can name /channel/:username also but :username important
-router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
+
 router.route("/history").get(verifyJWT, getWatchHistory)
 
 export default router;

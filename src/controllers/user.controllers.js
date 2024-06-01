@@ -209,12 +209,17 @@ const options={
 const logoutUser= asyncHandler(async(req,res)=>{
     // we need to do mainly 2 things :
     // 1) clear the cookie 
-    // 2)reset the refresh token
+    // 2)reset the refresh token i.e. remove it
     // we will use authentication middleware
    
 //    code for 2)
     await User.findByIdAndUpdate(req.user._id, { // finds user by parameter provided and updates 2nd parameter
-        $set:{refreshToken: undefined} // $set is mongodb operator which updates key with value provided
+        // $set:{refreshToken: undefined} // $set is mongodb operator which updates key with value provided
+        // using above line sometimes it was running , sometimes it was not therefor we are using its better alternate at below
+        $unset:{
+            refreshToken:1 // this removes the field from document
+            // whatever you want to remove pass the flag 1
+        }
     },
     {new : true} // beacuse of this in return the response which you will get will have new updated valeu of refreshToken i.e. undefined and if  not used it then we will get old value means it will get old value of refreshtoekn
 )
