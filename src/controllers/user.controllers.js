@@ -4,6 +4,7 @@ import {User} from "../models/user.models.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 // creating this method which will be used to create refresh and access token while registering the user 
 const generateAccessAndRefreshTokens= async(userId)=>{
@@ -294,7 +295,7 @@ const changeCurrentPassword =asyncHandler(async(req,res)=>{
 
 const getCurrentUser= asyncHandler(async(req,res)=>{
     return res.status(200)
-    .json(200 , req.user , "Current user fetched successfully")
+    .json(new ApiResponse(200 , req.user , "Current user fetched successfully"))
 })
 
 // for updating files we create different func and dont use this 
@@ -303,7 +304,7 @@ const updateAccountDetails= asyncHandler(async(req,res)=>{
     if(!fullName || !email){
         throw new ApiError(400 , "All fields are required")
     }
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(// whenever db is called await is important
         req.user?._id, 
         {
             $set :{ // set operator
@@ -330,6 +331,8 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
         throw new ApiError(400 , "Avatar file is missing")
     }
 
+
+    // todo : delete old image - assignment-> create utility func and use it after image is avatar is updated to delete old image
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     if(!avatar.url){
         throw new ApiError(400 , "Error while uploading on avatar")
@@ -378,6 +381,151 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
  )
 })
 
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
+const {username}= req.params // we get username through req.paranm and not req.body 
+// used destructuring in above
+if(!username?.trim()){
+
+// username?.trim() means:
+// If username is not null or undefined, call the trim() method on it. This will return the trimmed version of the string.
+// If username is null or undefined, the expression evaluates to undefined without throwing an error.
+    throw new ApiError(400, "username is missing")
+}
+// aggregation pipeline used to calculate no. of subscribers for which we count no. of channel. note written in copy
+// we have used total 5 pipelines here
+const channel =await User.aggregate([
+    // through below one document is filtered according to username(it given in lhs) as per username given in  rhs
+    {
+        $match:{
+            username:username?.toLowerCase() // although if we are here means we have username but still  optional chaining '?.' can be done for safety purpose
+        }
+    },
+    {
+$lookup:{ // here $lookup looks for or search for specific document in a given model with given foreign field and compare it from local field of the model we are currently in  
+    from: "subscriptions", // search from this model , presently we are at users model  .we brought this name from subscription.model.js . in db the name of model is changed to lowercase + plural form
+    localField:"_id",// we are presently at users model and here we compare the field name id with foreign field name in subscriptios model
+    foreignField:"channel",// in subscriptions model the id value of users model is saved in channel field 
+    as:"subscribers" // we bring it as subscribers i.e. we will use this name to refer it 
+}
+    },
+    {
+        $lookup : {
+            from:"subscriptions",
+            localField:"_id",
+            foreignField:"subscriber",
+            as:"subscribedTo"
+        }
+    },
+   {
+    $addFields:{ // thorugh this we added 3 fields to origninal user object
+     subscribersCount:{
+        $size:"$subscribers" // it counts number of thtat documents which is returned as name  'subscribers' using $lookup operator in above line of codes
+     },   
+     channelsSubscribedToCount:{
+        $size:"$subscribedTo" // it counts number of thtat documents which is returned as name  'subscriberedTo' using $lookup operator in above line of codes
+     },
+     isSubscribed:{
+        $cond: { // this condition operator has 3 parameters if() ,then :evaluated if condition true , else : if conditoin false
+            // here we just need to check that the documnet 'subscribers' which we have received in that i am there or not
+            if:{$in:[req.user?._id , "$subscribers.subscriber"]}, // heres $subscrbers means in the field subscbribers we are talking about subscriber object because in subscription named obj only we have saved it in subscription.model.js
+            then:true,
+            else:false
+        }
+     }
+    }
+   },
+   {
+    $project:{ 
+        //this pipeline is used so whatever is demanding the data i will not allow all data to pass because it will increase data traffic
+        // but only the selected data to pass.
+        // whatever data we want to pass in front of it we keep 1 
+        fullName:1,
+        username:1,
+        subscribersCount:1,
+        channelsSubscribedToCount:1,
+        isSubscribed:1,
+        avatar:1,
+        coverImage:1,
+        email:1
+
+
+    }
+   }
+])
+if(!channel?.length){
+    throw new ApiError(404 , "channel does not exist")
+}
+
+return res
+.status(200)
+.json(
+    new ApiResponse(200, channel[0], "User channel fetched successfully")
+)
+})
+
+const getWatchHistory = asyncHandler(async(req,res)=>{
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user._id)// this converts string id returned by req.user._id to ObjectId('String id') as stored in mongo db. here we need to explicitly convert in that way using mongoose
+               
+            }
+        
+    },
+{
+    // for understanding these clearly once refer this project model in eraser.io as shared in this proj gitHub link
+    // we are inside users i.e. users is local and videos is foreign
+    $lookup:{
+        from:"videos", // we are searching the document from Video model but it is saveds as videos in mongo db
+        localField:"watchHistory",// in our current user object i.e. user model name of field is "watchHistory" as saved in user model is user.models.js
+        foreignField:"_id",// user model watchHistory data field should be equal to _id of video model  
+        as:"watchHistory" ,// return this document wiht name watchHistory. we will access this document with this name only 
+        // nested $lookup
+        pipeline:[
+            {
+                // at this time wr are inside watchHistory document i.e. videos model therefore users is foreign here and videos local
+              
+                $lookup: {
+                    from : "users",
+                    localField:"owner",
+                    foreignField:"_id",
+                    as:"owner", // save this document with name owner
+                    // nested project operator
+                    pipeline:[{
+                        // at this time we are inside owners document i.e. user model
+                       $project:{
+                        fullName:1,
+                        username:1,
+                        avatar:1
+                       } 
+                    }]
+                }
+            },
+            // below code written for making front end devlopers work easy i.e. in place of tackling array of objects they just need to handle an object
+            {
+                $addFields:{
+                    owner:{ // we name it owner so existing owner field is over written
+                        $first:"$owner" // this means first element of owner field which is an array of object i.e. it returns an object which is this array 1st element  
+                        // $owner means owner field  
+                    }
+                }
+            }
+        ]
+
+    }
+
+}
+])
+
+return res
+.status(200)
+.json(
+    new ApiResponse(
+    200,
+    user[0].watchHistory,
+    "watch history fetched successfully "
+))
+})
 
 export {
     registerUser,
@@ -388,5 +536,7 @@ export {
 getCurrentUser,
 updateAccountDetails,
 updateUserAvatar,
-updateUserCoverImage
+updateUserCoverImage,
+getUserChannelProfile,
+getWatchHistory
 }
