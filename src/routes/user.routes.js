@@ -26,7 +26,7 @@ router.route("/update-account").patch(verifyJWT, updateAccountDetails)
 router.route("/avatar").patch(verifyJWT, upload.single("avatar") , updateUserAvatar)
 // above 2 middleware used one verifyJWT and other of multer upload.single()
 
-router.route("/cover-image").patch(verifyJWT,upload.single("/coverImage"), updateUserCoverImage)
+router.route("/cover-image").patch(verifyJWT,upload.single("coverImage"), updateUserCoverImage)
 router.route("/c/:username").get(verifyJWT,getUserChannelProfile)
 // since in above we got info from and req.params and not req.body therefore used colon(:) and username its important to use colon
 // we can name /channel/:username also but :username important
