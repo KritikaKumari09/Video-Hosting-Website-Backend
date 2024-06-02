@@ -386,6 +386,10 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
  )
 })
 
+
+
+// aggregation pipeline used for below 2 methods
+
 const getUserChannelProfile = asyncHandler(async(req,res)=>{
 const {username}= req.params // we get username through req.paranm and not req.body 
 // used destructuring in above
