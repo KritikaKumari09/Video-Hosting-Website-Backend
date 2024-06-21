@@ -1,4 +1,5 @@
 // require('dotenv').config({path:'./env'})
+// above disturbs the consistency therefire below syntax used
 import dotenv from "dotenv"
 import connectDB from "./db/index.js";
 import { app } from "./app.js";

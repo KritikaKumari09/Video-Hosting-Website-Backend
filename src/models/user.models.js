@@ -51,7 +51,7 @@ import bcrypt from "bcrypt"
  // 2nd argument i.e. callback func is async because encryption of password takes some time and we will not use 
 //  arrow function becuase arrow function has no this reference and here we need this referece
 
-//using pre hook to create our own middleware
+//using pre hook to create our own middleware i.e. custom middleware
  userSchema.pre("save",async function(next){ // pre hook used to encrypt password just before its saved
     if(!this.isModified("password")) return next();// this.isModified(Parameter_name)
     // if password is not changed then below code will not run

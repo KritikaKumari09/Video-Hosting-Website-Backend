@@ -9,7 +9,7 @@ cloudinary.config({
 
 // just like database , upload task is also complicated there can be some error
 // therefore we use try and catch to handle errors.
-// since its time consuming therefore we use assnc and uploader.upload() of cloudinary 
+// since its time consuming therefore we use async and uploader.upload() of cloudinary 
 // also takes time therefore await
 const uploadOnCloudinary= async(localFilePath)=>{
   try{
@@ -18,6 +18,7 @@ const uploadOnCloudinary= async(localFilePath)=>{
     const response= await cloudinary.uploader.upload(localFilePath, {
       resource_type:"auto" // this means detect automatically whether it is image,video,audio etc
     })
+    // in above resource_type is one of the properties , more properties can come , check the documentation 
     // file has been uploaded successfully
     // console.log("file is uploaded on cloudinary", response.url);
     fs.unlinkSync(localFilePath)// remove the locally saved temporary file as the
